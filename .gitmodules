@@ -1,0 +1,3 @@
+[submodule "lib/Nano-Lua-Dictionary"]
+	path = lib/Nano-Lua-Dictionary
+	url = https://github.com/Goles/Nano-Lua-Dictionary.git
