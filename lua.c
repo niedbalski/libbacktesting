@@ -1,51 +1,20 @@
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+#include "lua.h"
 
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include "nanoluadict.h"
-
-typedef struct lua_context {
-    const char *filepath;
-    struct lua_hook *hooks;
-    struct lua_State *lua_state;
-    void (*hook)(char *callback, float number);
-} lua_context;
-
-typedef struct lua_hook {
-    const char *name;
-    struct lua_hook *next;
-} lua_hook;
-
-static const char *available_hooks[] = {
-    "on_tick",
-    "before_order",
-    "after_order"
-};
-
-static struct lua_context *context = NULL;
-
-
-static inline void lua_hook_free(struct lua_hook *head) 
+static inline void lua_hook_free(lua_hook *head) 
 {
-    struct lua_hook *p, *next;
+    lua_hook *p, *next;
 
-    for (p = context->hooks; p != NULL; p = next) {
+    for (p = head; p != NULL; p = next) {
         next = p->next;
         free(p);
     }
 }
 
-static inline int lua_hook_find(struct lua_hook *head, char *name)
+static inline int lua_hook_find(lua_hook *head, const char *name)
 {
-    struct lua_hook *current;
+    lua_hook *current;
 
     current = head;
-
     while(current != NULL) {
         if(strncmp(current->name, name, strlen(current->name)) == 0)
             return 0;
@@ -55,12 +24,11 @@ static inline int lua_hook_find(struct lua_hook *head, char *name)
     return -1;
 }
 
-static inline struct lua_hook *lua_hook_add(struct lua_hook *head, const char *name)
+static inline struct lua_hook *lua_hook_add(lua_hook *head, const char *name)
 {
-    struct lua_hook *new;
-    struct lua_hook *current;
+    lua_hook *new, *current;
 
-    new = malloc(sizeof(struct lua_hook));
+    new = malloc(sizeof(lua_hook));
 
     if ( new == NULL ) 
         return NULL;
@@ -83,34 +51,63 @@ static inline struct lua_hook *lua_hook_add(struct lua_hook *head, const char *n
     return head;
 }
  
-
-static int backtest_lua_hook(char *callback, float number) 
+static inline int lua_hook_call(lua_context *self, const char *callback, unsigned long argc, ...) 
 {
+    int i;
+    lua_arg argument;
+    va_list arguments;
 
-    if(lua_hook_find(context->hooks, callback) != 0)
+    if(lua_hook_find(self->hooks, callback) != 0)
         return -1;
 
-    lua_getglobal(context->lua_state, callback);
-    lua_pushnumber(context->lua_state, number);
-    lua_call(context->lua_state, 1, 0);
-
+    lua_getglobal(self->lua_state, callback);
+    va_start(arguments, argc);
+    
+    for(i=0; i < argc; ++i) {
+        argument = va_arg(arguments, lua_arg);
+        switch(argument.type) {
+        case NUMBER:
+            lua_pushnumber(self->lua_state, argument.value.number);
+            break;
+        case STRING:
+            lua_pushstring(self->lua_state, argument.value.string);
+            break;
+        case CFUNCTION:
+            lua_pushcfunction(self->lua_state, argument.value.function);
+            break;
+        default:
+            break;
+        }
+    }
+    
+    lua_call(self->lua_state, argc, 0);
     return 0;
 }
 
-static int backtest_lua_init(const char *filepath) 
+
+void backtest_lua_destroy(struct lua_context *self) 
+{   
+    lua_close(self->lua_state);
+    lua_hook_free(self->hooks);
+    free(self);
+}
+
+
+lua_context *backtest_lua_init(const char *filepath) 
 {
+    lua_context *context;
     struct lua_State *L = NULL;
     struct stat st;
 
     int i = 0;
 
     if ( (i =  stat(filepath, &st)) != 0)
-       return -1; 
+       return NULL; 
 
     L = lua_open();
 
     if (L == NULL)
-        return -1;
+        return NULL;
 
     luaL_openlibs(L);
     i = luaL_dofile(L, filepath);
@@ -118,7 +115,7 @@ static int backtest_lua_init(const char *filepath)
     context = malloc(sizeof(lua_context));
 
     if (context == NULL) 
-        return -1;
+        return NULL;
 
     context->hooks = NULL;
 
@@ -131,16 +128,7 @@ static int backtest_lua_init(const char *filepath)
 
     context->filepath = filepath;
     context->lua_state = L;
-    context->hook = (void *)&backtest_lua_hook;
+    context->hook = (void *)&lua_hook_call;
 
-    return 0;
-}
-
-static int backtest_lua_destroy(void) 
-{   
-    lua_close(context->lua_state);
-    lua_hook_free(context->hooks);    
-
-    free(context);
-    return 0;
+    return context;
 }
