@@ -32,37 +32,23 @@ enum PRICE_CONDITION {
 
 typedef struct price_condition {
     enum PRICE_CONDITION condition;
-    float price;
+    float value;
 } price_condition;
+
 
 typedef struct file_context {
     const char *filename;
     enum FILE_TYPE file_type;
-    price_condition **conditions;
+    struct price_condition **conditions;
     char *mapped;
     size_t current_conditions;
     size_t mapped_size;
-    void(*add_price_condition)(struct file_context *context, enum PRICE_CONDITION condition, float value);
+    int(*add_price_condition)(struct file_context *context, enum PRICE_CONDITION condition, float value);
 } file_context;
 
-/* static inline int add_price_condition(struct file_context *context, enum PRICE_CONDITION price_condition, float value){ */
-/*     unsigned int index; */
-/*     //= context->current_conditions + 1; */
-
-/*     //context->conditions = realloc(context->conditions, sizeof(price_condition *) * index); */
-
-/*     if ( context->conditions == NULL ) { */
-/*         debug("Invalid conditions alloc\n"); */
-/*         return -1; */
-/*     } */
-
-/*     context->conditions[index] = { */
-/*         .price_condition = price_condition, */
-/*         .price = value, */
-/*     }; */
-
-/*     return EXIT_SUCCESS; */
-/* } */
+static inline int add_price_condition(struct file_context *context, enum PRICE_CONDITION price_condition, float value){ 
+   return 0;
+}
 
 file_context *backtest_file_init(const char *filename, enum FILE_TYPE file_type) 
 {
@@ -101,13 +87,12 @@ file_context *backtest_file_init(const char *filename, enum FILE_TYPE file_type)
 
     ctx->mapped_size = st.st_size;
     ctx->file_type = file_type;
-    ctx->set_price_condition = &set_price_condition;
+    ctx->add_price_condition = &add_price_condition;
 
     return ctx;
 } 
 
-void backtest_file_destroy(file_context *context) 
-{
+void backtest_file_destroy(file_context *context) {
     if(context->mapped) 
         munmap(context->mapped, context->mapped_size);
 
@@ -117,8 +102,7 @@ void backtest_file_destroy(file_context *context)
     free(context);
 }
 
-int main(void) 
-{
+int main(void) {
     struct file_context *ctx;
 
     ctx = backtest_file_init("./tests/DAT_MT_USDCAD_M1_201212.csv", BACKTEST_FILE_CSV);

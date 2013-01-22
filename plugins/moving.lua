@@ -1,3 +1,3 @@
 function on_tick(number)
-   io.write(string.format("String: %s", number))
+   io.write(string.format("Passed value: %s\n", number))
 end
