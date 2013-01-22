@@ -6,6 +6,8 @@ EXAMPLES=$(wildcard ./examples/*.c)
 
 all:	clean prepare library
 
+update:
+	git submodule update --init --recursive
 prepare:
 	mkdir -p ./objs/
 

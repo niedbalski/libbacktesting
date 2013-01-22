@@ -1,5 +1,5 @@
 #include "backtest.h"
-
+#define CLEANUP(ctx) backtest_lua_destroy(ctx)
 
 int main(void) 
 {
@@ -16,10 +16,11 @@ int main(void)
     argument.type = NUMBER;
 
     if((ret = ctx->hook(ctx, "on_tick", 1, argument)) != 0) {
-        backtest_lua_destroy(ctx);
+        CLEANUP(ctx);
         return EXIT_FAILURE;
     }
 
+    CLEANUP(ctx);
     return EXIT_SUCCESS;
 
 }
