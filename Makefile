@@ -1,15 +1,24 @@
 CC = gcc
 LIBS = -lm -llua5.1
 CFLAGS = -g -Wall -DENABLE_DEBUG
-INCLUDE=-I./lib/Nano-Lua-Dictionary/ -I/usr/include/lua5.1/ -I.
+INCLUDE=-I./lib/Nano-Lua-Dictionary/ -I/usr/include/lua5.1/ -I .
+EXAMPLES=$(wildcard ./examples/*.c)
 
 all:	clean prepare library
 
 prepare:
 	mkdir -p ./objs/
 
-library: lua.o
-	$(CC) $(CFLAGS) $(INCLUDE) -shared -fPIC ./objs/lua.o -o libbacktesting.so $(LIBS)
+examples: all 
+	@$(foreach example, $(EXAMPLES), \
+	    $(CC) $(CFLAGS) $(INCLUDE) $(example) $(PWD)/libbacktesting.so -o $(basename $(example)); \
+	)
+	
+library: lua.o list.o
+	$(CC) $(CFLAGS) $(INCLUDE) -shared -fPIC ./objs/list.o ./objs/lua.o -o libbacktesting.so $(LIBS)
+	
+list.o: list.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) -fPIC list.c -o ./objs/list.o
 
 lua.o: lua.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) -fPIC lua.c -o ./objs/lua.o
