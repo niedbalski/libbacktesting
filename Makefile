@@ -16,8 +16,11 @@ examples: all
 	    $(CC) $(CFLAGS) $(INCLUDE) $(example) $(PWD)/libbacktesting.so -o $(basename $(example)); \
 	)
 	
-library: lua.o list.o
-	$(CC) $(CFLAGS) $(INCLUDE) -shared -fPIC ./objs/list.o ./objs/lua.o -o libbacktesting.so $(LIBS)
+library: lua.o list.o reader.o
+	$(CC) $(CFLAGS) $(INCLUDE) -shared -fPIC ./objs/list.o ./objs/lua.o ./objs/reader.o -o libbacktesting.so $(LIBS)
+	
+reader.o: reader.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) -fPIC reader.c -o ./objs/reader.o
 	
 list.o: list.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) -fPIC list.c -o ./objs/list.o

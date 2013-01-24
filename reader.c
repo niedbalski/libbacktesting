@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define MAX_PRICE_CONDITIONS 2
+
 #ifdef DEBUG
 #define debug(fmt, args...) printf("%s:%d "fmt,__FILE__,__LINE__,args)
 #else
@@ -26,12 +28,14 @@ enum FILE_TYPE {
 
 enum PRICE_CONDITION {
     LOWER_THAN,
+    LOWER_AND_EQUALS_TO,
     GREATER_THAN,
+    GREATER_AND_EQUALS_TO,
     EQUALS_TO,
 };
 
 typedef struct price_condition {
-    enum PRICE_CONDITION condition;
+    enum PRICE_CONDITION type;
     float value;
 } price_condition;
 
@@ -39,60 +43,194 @@ typedef struct price_condition {
 typedef struct file_context {
     const char *filename;
     enum FILE_TYPE file_type;
-    struct price_condition **conditions;
+    struct price_condition *conditions;
     char *mapped;
     size_t current_conditions;
     size_t mapped_size;
-    int(*add_price_condition)(struct file_context *context, enum PRICE_CONDITION condition, float value);
 } file_context;
 
-static inline int add_price_condition(struct file_context *context, enum PRICE_CONDITION price_condition, float value){ 
-   return 0;
+//i prefer to use global static var instead of using idiot references.
+static struct file_context *context = NULL;
+
+
+static inline void print_conditions() {
+    int i;
+    for(i = 0; i <= context->current_conditions - 1; i++) {
+        printf("%f\n", context->conditions[i].value);
+    }
 }
 
-file_context *backtest_file_init(const char *filename, enum FILE_TYPE file_type) 
+static inline int add_condition(enum PRICE_CONDITION type, float value) 
 {
-    struct file_context *ctx;
+    if(context->conditions == NULL) {
+        context->conditions = malloc(sizeof(price_condition));
+
+        if(context->conditions == NULL)
+            return -1;
+
+        context->conditions[0].type = type;
+        context->conditions[0].value = value;
+
+    } else {
+        context->conditions = realloc(context->conditions, sizeof(price_condition) * (context->current_conditions + 1));
+
+        if(context->conditions == NULL)
+            return -1;
+
+        context->conditions[context->current_conditions].type = type;
+        context->conditions[context->current_conditions].value = value;        
+    }
+
+    context->current_conditions += 1;
+    return 0;
+} 
+
+static inline int add_equals_condition(float value) {
+    return add_condition(EQUALS_TO, value);
+}
+
+static inline int add_lower_than_condition(float value) 
+{
+    struct price_condition previous_condition;
+
+    if ( context->current_conditions == 1 ) {
+        previous_condition = context->conditions[0];
+
+        if ( previous_condition.type == GREATER_THAN || previous_condition.type == GREATER_AND_EQUALS_TO) {
+            if ( value < previous_condition.value )
+                return -1;
+        }
+    }
+    return add_condition(LOWER_THAN, value);
+}
+
+static inline int add_lower_and_equals_condition(float value) 
+{
+    struct price_condition previous_condition;
+
+    if ( context->current_conditions == 1 ) {
+        previous_condition = context->conditions[0];
+
+        if ( previous_condition.type == GREATER_THAN || previous_condition.type == GREATER_AND_EQUALS_TO){
+            if ( value <= previous_condition.value ) 
+                return -1;
+        }
+    }
+
+    return add_condition(LOWER_AND_EQUALS_TO, value);
+}
+
+static inline int add_greater_than_condition(float value) 
+{
+    struct price_condition previous_condition;
+
+    if( context->current_conditions ) {
+        previous_condition = context->conditions[0];
+
+        if ( previous_condition.type == LOWER_THAN || previous_condition.type == LOWER_AND_EQUALS_TO) {
+            if ( value > previous_condition.value ) {
+                return -1;
+            }
+        }
+    }
+
+    return add_condition(GREATER_THAN, value);
+}
+
+static inline int add_greater_and_equals_condition(float value) 
+{
+    struct price_condition previous_condition;
+
+    if( context->current_conditions == 1) {
+        previous_condition = context->conditions[0];
+
+        if ( previous_condition.type == LOWER_THAN || previous_condition.type == LOWER_AND_EQUALS_TO){
+            if ( value >= previous_condition.value )
+                return -1;
+        }
+    }
+
+    return add_condition(GREATER_AND_EQUALS_TO, value);
+}
+
+static inline int evaluate_conditions(float value) 
+{
+    return 0;
+}
+
+int backtest_add_price_condition(enum PRICE_CONDITION price_condition, float value)
+{ 
+    int ret;
+
+    if ( context->current_conditions >= MAX_PRICE_CONDITIONS && price_condition != EQUALS_TO)
+        return -1;
+
+    switch(price_condition) {
+    case LOWER_THAN:
+        ret = add_lower_than_condition(value);
+        break;      
+    case LOWER_AND_EQUALS_TO:
+        ret = add_lower_and_equals_condition(value);
+    case GREATER_THAN:
+        ret = add_greater_than_condition(value);
+        break;
+    case GREATER_AND_EQUALS_TO:
+        ret = add_greater_and_equals_condition(value);
+        break;
+    case EQUALS_TO:
+        ret = add_equals_condition(value);
+        break;
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int backtest_file_init(const char *filename, enum FILE_TYPE file_type) 
+{
     struct stat st;
     int r, fd;
 
     if( (r = stat(filename, &st)) != 0) {
         debug("Filename %s not found\n", filename);
-        return NULL;
+        return -1;
     }
 
     if ( st.st_size == 0 ) {
         debug("Zero size file %s\n", filename);
-        return NULL;
+        return -1;
     }
 
     fd = open(filename, O_RDONLY);
 
     if ( fd == -1 ) {
         debug("Cannot open filename %s\n", filename);
-        return NULL;
+        return -1;
     }
 
-    ctx = malloc(sizeof(file_context));
+    context = malloc(sizeof(file_context));
 
-    if(ctx == NULL)
-        return NULL;
+    if(context == NULL)
+        return -1;
 
-    ctx->mapped = (char *)mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    context->mapped = (char *)mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
    
-    if(ctx->mapped == NULL) {
+    if(context->mapped == NULL) {
         debug("Cannot map filename:%s to memory\n", filename);
-        return NULL;
+        return -1;
     }
 
-    ctx->mapped_size = st.st_size;
-    ctx->file_type = file_type;
-    ctx->add_price_condition = &add_price_condition;
+    context->mapped_size = st.st_size;
+    context->file_type = file_type;
+    context->conditions = NULL;
+    context->current_conditions = 0;
 
-    return ctx;
+    return 0;
 } 
 
-void backtest_file_destroy(file_context *context) {
+void backtest_file_destroy(void) {
     if(context->mapped) 
         munmap(context->mapped, context->mapped_size);
 
@@ -101,41 +239,3 @@ void backtest_file_destroy(file_context *context) {
 
     free(context);
 }
-
-int main(void) {
-    struct file_context *ctx;
-
-    ctx = backtest_file_init("./tests/DAT_MT_USDCAD_M1_201212.csv", BACKTEST_FILE_CSV);
-
-    if(ctx == NULL)  
-        return EXIT_FAILURE;
-
-    ctx->add_price_condition(ctx, LOWER_THAN, 100.0);
-
-    backtest_file_destroy(ctx);
-    return 0;
-}
-
-
-/* int main(void) { */
-
-/*     gchar *contents, **lines, **fields; */
-/*     GMappedFile *file; */
-/*     GError *error = NULL; */
-/*     gint fields_size = 0; */
-
-/*     file = g_mapped_file_new("./tests/DAT_MT_USDCAD_M1_201212.csv", FALSE, NULL); */
-/*     contents = g_mapped_file_get_contents(file); */
-
-/*     lines = g_strsplit(contents, "\n", 0); */
-
-/*     if(lines == NULL) */
-/*         return -1; */
-
-/*     for(int i=0; lines[i] != NULL; i++) {         */
-/*         fields = g_strsplit(lines[i], ",", 0); */
-/*         for(i */
-/*     } */
-
-/*     return 0; */
-/* } */
