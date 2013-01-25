@@ -1,57 +1,7 @@
-#include <stdio.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#define MAX_PRICE_CONDITIONS 2
-
-#ifdef DEBUG
-#define debug(fmt, args...) printf("%s:%d "fmt,__FILE__,__LINE__,args)
-#else
-#define debug(fmt, args...)
-#endif
-
-/* typedef struct tick { */
-/*     GDateTime *datetime; */
-/*     float average, max, min; */
-/* } tick; */
-
-enum FILE_TYPE {
-    BACKTEST_FILE_CSV,
-    BACKTEST_FILE_TXT,
-};
-
-enum PRICE_CONDITION {
-    LOWER_THAN,
-    LOWER_AND_EQUALS_TO,
-    GREATER_THAN,
-    GREATER_AND_EQUALS_TO,
-    EQUALS_TO,
-};
-
-typedef struct price_condition {
-    enum PRICE_CONDITION type;
-    float value;
-} price_condition;
+#include "reader.h"
 
 
-typedef struct file_context {
-    const char *filename;
-    enum FILE_TYPE file_type;
-    struct price_condition *conditions;
-    char *mapped;
-    size_t current_conditions;
-    size_t mapped_size;
-} file_context;
-
-//i prefer to use global static var instead of using idiot references.
 static struct file_context *context = NULL;
-
 
 static inline void print_conditions() {
     int i;
@@ -59,6 +9,52 @@ static inline void print_conditions() {
         printf("%f\n", context->conditions[i].value);
     }
 }
+
+int backtest_evaluate_conditions(float value) 
+{
+    price_condition condition;
+    int i;
+
+    if(! context->current_conditions ) {
+        return -1;
+    }
+
+    for(i = 0; i <= context->current_conditions - 1; i++) {
+        condition = context->conditions[i];
+        switch(condition.type) {
+        case LOWER_THAN:
+            if(!(value < condition.value)) {
+                return -1;
+            }
+            break;
+        case LOWER_AND_EQUALS_TO:
+            if(!(value <= condition.value)) {
+                return -1;
+            }
+            break;
+        case GREATER_THAN:
+            if(!(value > condition.value)) {
+                return -1;
+            }
+            break;
+        case GREATER_AND_EQUALS_TO:
+            if(!(value >= condition.value)) {
+                return -1;
+            }
+            break;
+        case EQUALS_TO:
+            if(!(value == condition.value)) {
+                return -1;
+            }
+            break;
+        default:
+            return -1;
+        }
+    }    
+
+    return 0;
+}
+
 
 static inline int add_condition(enum PRICE_CONDITION type, float value) 
 {
@@ -151,11 +147,6 @@ static inline int add_greater_and_equals_condition(float value)
     }
 
     return add_condition(GREATER_AND_EQUALS_TO, value);
-}
-
-static inline int evaluate_conditions(float value) 
-{
-    return 0;
 }
 
 int backtest_add_price_condition(enum PRICE_CONDITION price_condition, float value)
