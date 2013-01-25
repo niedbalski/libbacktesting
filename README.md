@@ -1,6 +1,6 @@
-build status
+Build Status
 ============
-[![Build Status](https://travis-ci.org/SobanVuex/chef-nginx.png?branch=master)](https://travis-ci.org/SobanVuex/chef-nginx)
+[![Build Status](https://travis-ci.org/niedbalski/libbacktesting.png?branch=master)](https://travis-ci.org/niedbalski/libbacktesting)
 
 libBacktesting
 ==============
