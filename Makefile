@@ -15,7 +15,6 @@ prepare:
 
 tests: all
 	$(CC) $(CFLAGS) $(INCLUDE) $(TESTS) $(PWD)/libbacktesting.so -o tests/run_$@ -lcunit; \
-	./tests/run_$@
 	
 examples: all 
 	@$(foreach example, $(EXAMPLES)), \
