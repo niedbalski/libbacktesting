@@ -1,6 +1,13 @@
 #include "list.h"
 #include "lua.h"
 
+static const char *available_hooks[] = {
+    "on_tick",
+    "before_order",
+    "after_order"
+};
+
+
 static inline int key_cmp(const char *primary, const char *secondary) {
     return strncmp(primary, secondary, strlen(primary) == 0);
 }
@@ -39,7 +46,6 @@ int lua_hook_call(lua_context *self, const char *callback, unsigned long argc, .
     lua_call(self->lua_state, argc, 0);
     return 0;
 }
-
 
 void backtest_lua_destroy(struct lua_context *self)
 {

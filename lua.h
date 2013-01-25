@@ -32,12 +32,6 @@ typedef struct lua_arg {
 } lua_arg;
 
 
-const char *available_hooks[] = {
-    "on_tick",
-    "before_order",
-    "after_order"
-};
-
 int lua_hook_call(lua_context *self, const char *callback, unsigned long int argc, ...);
 void backtest_lua_destroy(lua_context *self);
 lua_context *backtest_lua_init(const char *filepath);
