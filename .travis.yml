@@ -1,3 +1,12 @@
 language: c
+
+branches:
+  only:
+    - master
+
+install:
+  - sudo apt-get install libcunit1 libcunit1-dev
+  - sudo apt-get install liblua5.1-0 liblua5.1-0-dev
+
 before_script: "make tests"
 script: "./tests/run_tests"
