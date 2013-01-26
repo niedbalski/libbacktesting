@@ -1,3 +1,5 @@
+@author: Jorge Niedbalski R. <jnr@pyrosome.org>
+
 Build Status
 ============
 [![Build Status](https://travis-ci.org/niedbalski/libbacktesting.png?branch=master)](https://travis-ci.org/niedbalski/libbacktesting)
@@ -19,7 +21,7 @@ Description
 
 The library is composed of the following 3 components:
 
-  1) *The feed/file loader*: Loads a stream of ticks from a stream source or directly
+  1) **The feed/file loader**: Loads a stream of ticks from a stream source or directly
   from a CSV/Txt file.
 
   * Example of usage: Creates a new csv loader and set 2 price conditions for each found tick.
@@ -42,14 +44,13 @@ The library is composed of the following 3 components:
   }
   ```
 
-  2) *LUA strategies*: Every time an event ocurrs inside a trading backtesting session , the following
-  callbacks are generated:
+  2) **LUA strategies**: Everytime a tick is yield on the file loader, the following
+  callbacks lua callbacks are invoked:
   
-      1) *on_tick* : is called when a new tick passing the price conditions is found.
-      2) *on_new_position* : is called before a new position is gonna be submitted to the trading system.
-      3) *on_position*: is called after a new position is submitted to the trading system.
-      4) *on_exit_position*: is called when a position is closed
-      
+      ## 1) **on_tick** : is called when a new tick passing the price conditions is found.
+      ## 2) *on_new_position* : is called before a new position is gonna be submitted to the trading system.
+      ## 3) *on_position*: is called after a new position is submitted to the trading system.
+      ## 4) *on_exit_position*: is called when a position is closed
     
   ```C
   
@@ -91,9 +92,8 @@ The library is composed of the following 3 components:
   }
   ```
 
-  *) Trading API: Not ready yet.
-
-
+  4) **Trading API**: Not ready yet.
+  5) **Plots**: Not ready yet
 
 
 
