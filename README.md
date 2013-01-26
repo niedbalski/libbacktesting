@@ -21,10 +21,10 @@ Description
 
 The library is composed of the following 3 components:
 
-  1) **The feed/file loader**: Loads a stream of ticks from a stream source or directly
-  from a CSV/Txt file.
+  1. **The feed/file loader**: Loads a stream of ticks from a stream source or directly
+  from a CSV/TXT file.
 
-  * Example of usage: Creates a new csv loader and set 2 price conditions for each found tick.
+  *Example of usage*: Creates a new csv loader and set 2 price conditions for each found tick.
   
   ```C
   
@@ -44,14 +44,17 @@ The library is composed of the following 3 components:
   }
   ```
 
-  2) **LUA strategies**: Everytime a tick is yield on the file loader, the following
+  2. **LUA strategies**: Everytime a tick is yield on the file loader, the following
   callbacks lua callbacks are invoked:
   
-      ## 1) **on_tick** : is called when a new tick passing the price conditions is found.
-      ## 2) *on_new_position* : is called before a new position is gonna be submitted to the trading system.
-      ## 3) *on_position*: is called after a new position is submitted to the trading system.
-      ## 4) *on_exit_position*: is called when a position is closed
-    
+      1. **on_tick** : is called when a new tick passing the price conditions is found.
+      2. **on_new_position** : is called before a new position is gonna be submitted to the trading system.
+      3. **on_position**: is called after a new position is submitted to the trading system.
+      4. **on_exit_position**: is called when a position is closed
+  
+  *Example of usage*: Load a LUA strategy file, the method *backtest_lua_hook* calls the binded callback
+  inside the LUA file.
+
   ```C
   
   #include <backtest.h>
@@ -59,8 +62,8 @@ The library is composed of the following 3 components:
   int main(void) {
       backtest_lua_init("./strategies/3-sma-average.lua")
       
-      backtest_lua_add_hook("on_hook", 100.0);
-      backtest_lua_add_hook("on_exit_position");
+      backtest_lua_hook("on_hook", 100.0);
+      backtest_lua_hook("on_exit_position");
       
       //free and destroy resources
       backtest_lua_destroy();
@@ -71,29 +74,32 @@ The library is composed of the following 3 components:
   
   ```lua
   function on_tick(tick_value)
-    io.write(string.format("Passed value: %s\n", tick_value))
+      io.write(string.format("Passed value: %s\n", tick_value))
   end
 
   function on_exit_position(position)
-    io.write(string.format("Closed at value: %s\n", position.closed_at()))
+      io.write(string.format("Closed at value: %s\n", position.closed_at()))
   end
   
   ```
   
-  3) **Bind**: Once you define your *Strategy* and creates a *Tick feed* you need to 
+  3. **Bind**: Once you define your *Strategy* and creates a *Tick feed* you need to 
   bind and start simulating trades.
-  
+
+  *Example of usage*: Get the context of the LUA strategy and the CSV loader, then start
+  the strategy from 500 ticks from now timestamp.
+
   ```C
   #include <backtest.h>
   
   int main(void) {
-    binded = backtest_bind(backtest_lua_get_ctx(), backtest_file_get_ctx());
-    binded->start(-500); // start since -500 ticks , calculate this :)
+      binded = backtest_bind(backtest_lua_get_ctx(), backtest_file_get_ctx());
+      binded->start(-500); // start since -500 ticks , calculate this :)
   }
   ```
 
-  4) **Trading API**: Not ready yet.
-  5) **Plots**: Not ready yet
+  4. **Trading API**: Not ready yet.
+  5. **Plots**: Not ready yet
 
 
 
