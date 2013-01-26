@@ -64,6 +64,7 @@ The library is composed of the following 3 components:
       //free and destroy resources
       backtest_lua_destroy();
   }
+  ```
   
   Once you defined your hooks, you need to write the LUA plugin "3-sma-average.lua" :
   
@@ -78,7 +79,7 @@ The library is composed of the following 3 components:
   
   ```
   
-  3) *Bind*: Once you define your *Strategy* and creates a *Tick feed* you need to 
+  3) **Bind**: Once you define your *Strategy* and creates a *Tick feed* you need to 
   bind and start simulating trades.
   
   ```C
