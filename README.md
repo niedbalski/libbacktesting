@@ -10,18 +10,31 @@ Open-source library written in plain C for back-testing of trading strategies.
 Description
 ===========
 
-The library is composed of the following components:
+The library is composed of the following 3 components:
 
-  *) File loader: Creates a new file-loader and
-  associates a time interval in wich a tick will be generated.
+  1) The feed/file loader: Loads a stream of ticks from a stream source or directly
+  from a CSV/Txt file.
 
+  * Example of usage: Creates a new csv loader and set 2 price conditions for
+  * each tick
+  
   Example usage:
   ```C
-  loaded = backtest_load_file("/home/user/forex-data.csv", BACKTEST_FILE_CSV, time_t since, 
-                                      time_t until, time_t interval, void *callback);
   
-  loaded->skip_values(LOWER_THAN, 100.00);
-  loaded->skip_values(GREATER_THAN, 150.00);
+  #include <backtest.h>
+  
+  int main(void) {
+      int r;
+      r  = backtest_file_init("/home/user/forex-data.csv", BACKTEST_FILE_CSV);
+      
+      if ( r == -1 ) 
+         return -1;
+
+      backtest_add_price_condition(LOWER_THAN, 100.00);
+      backtest_add_price_condition(GREATER_AND_EQUALS_TO, 50.00);
+      
+      backtest_file_destroy();
+  }
   ```
 
   *) Lua plugin interface: Associates a set of callbacks to be
