@@ -27,7 +27,11 @@ int main() {
         return CU_get_error();
     }
 
-    CU_add_test(backtest_suite, "test of backtest reader init", (CU_TestFunc)test_backtest_file_init);
+    CU_add_test(backtest_suite, "test of backtest reader initialization method", (CU_TestFunc)test_backtest_file_init);
+    CU_add_test(backtest_suite, "test of backtest lua initialization method", (CU_TestFunc)test_backtest_lua_init);
+    CU_add_test(backtest_suite, "test of backtest lua get context", (CU_TestFunc)test_backtest_lua_get_ctx);
+    CU_add_test(backtest_suite, "test of backtest reader get context", (CU_TestFunc)test_backtest_file_get_ctx);
+
     /* CU_add_test(backtest_suite, "test of backtest reader destroy", test_backtest_file_destroy); */
     /* CU_add_test(backtest_suite, "test for several price condition adds", test_add_price_condition); */
     /* CU_add_test(backtest_suite, "test of evaluation of conditions", test_evaluate_condition); */

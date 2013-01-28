@@ -31,7 +31,8 @@ typedef struct lua_arg {
     enum EVENT_TYPE type;
 } lua_arg;
 
+int lua_hook_call(const char *callback, unsigned long int argc, ...);
+int backtest_lua_init(const char *filepath);
+void backtest_lua_destroy(void);
+lua_context *backtest_lua_get_ctx(void);
 
-int lua_hook_call(lua_context *self, const char *callback, unsigned long int argc, ...);
-void backtest_lua_destroy(lua_context *self);
-lua_context *backtest_lua_init(const char *filepath);

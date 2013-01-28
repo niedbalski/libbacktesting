@@ -7,21 +7,22 @@ static const char *available_hooks[] = {
     "after_order"
 };
 
+static lua_context *context = NULL;
 
 static inline int key_cmp(const char *primary, const char *secondary) {
     return strncmp(primary, secondary, strlen(primary) == 0);
 }
 
-int lua_hook_call(lua_context *self, const char *callback, unsigned long argc, ...)
+int lua_hook_call(const char *callback, unsigned long argc, ...)
 {
     int i;
     lua_arg argument;
     va_list arguments;
 
-    if(list_find(self->hooks, callback, (compare_function)key_cmp) != 0)
+    if(list_find(context->hooks, callback, (compare_function)key_cmp) != 0)
         return -1;
 
-    lua_getglobal(self->lua_state, callback);
+    lua_getglobal(context->lua_state, callback);
     va_start(arguments, argc);
 
     if(argc > 0) {
@@ -29,13 +30,13 @@ int lua_hook_call(lua_context *self, const char *callback, unsigned long argc, .
             argument = va_arg(arguments, lua_arg);
             switch(argument.type) {
             case NUMBER:
-                lua_pushnumber(self->lua_state, argument.value.number);
+                lua_pushnumber(context->lua_state, argument.value.number);
                 break;
             case STRING:
-                lua_pushstring(self->lua_state, argument.value.string);
+                lua_pushstring(context->lua_state, argument.value.string);
                 break;
             case CFUNCTION:
-                lua_pushcfunction(self->lua_state, argument.value.function);
+                lua_pushcfunction(context->lua_state, argument.value.function);
                 break;
             default:
                 break;
@@ -43,36 +44,41 @@ int lua_hook_call(lua_context *self, const char *callback, unsigned long argc, .
         }
     }
 
-    lua_call(self->lua_state, argc, 0);
+    lua_call(context->lua_state, argc, 0);
     return 0;
 }
 
-void backtest_lua_destroy(struct lua_context *self)
+void backtest_lua_destroy(void)
 {
-    if(self->lua_state != NULL)
-        lua_close(self->lua_state);
+    if(context->lua_state != NULL)
+        lua_close(context->lua_state);
    
-    if(self->hooks != NULL)
-        list_free(self->hooks);
+    if(context->hooks != NULL)
+        list_free(context->hooks);
 
-    if(self != NULL)
-        free(self);
+    if(context != NULL)
+        free(context);
 }
 
-lua_context *backtest_lua_init(const char *filepath)
+
+lua_context *backtest_lua_get_ctx(void) 
 {
-    lua_context *context;
+    return (lua_context *)&context;
+}
+
+int backtest_lua_init(const char *filepath)
+{
     struct lua_State *L = NULL;
     struct stat st;
     int i, hooks = 0;
 
     if ( (i =  stat(filepath, &st)) != 0)
-       return NULL;
+       return -1;
 
     L = lua_open();
 
     if (L == NULL)
-        return NULL;
+        return -1;
 
     luaL_openlibs(L);
     i = luaL_dofile(L, filepath);
@@ -80,7 +86,7 @@ lua_context *backtest_lua_init(const char *filepath)
     context = malloc(sizeof(lua_context));
 
     if (context == NULL)
-        return NULL;
+        return -1;
 
     context->hooks = NULL;
 
@@ -94,11 +100,11 @@ lua_context *backtest_lua_init(const char *filepath)
     }
 
     if(hooks == 0)
-        return NULL;
+        return -1;
 
     context->filepath = filepath;
     context->lua_state = L;
     context->hook = (void *)&lua_hook_call;
 
-    return context;
+    return 0;
 }

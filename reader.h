@@ -53,4 +53,5 @@ typedef struct file_context {
 int backtest_evaluate_conditions(float value);
 int backtest_add_price_condition(enum PRICE_CONDITION price_condition, float value);
 int backtest_file_init(const char *filename, enum FILE_TYPE file_type);
+file_context *backtest_file_get_ctx(void);
 void backtest_file_destroy(void);

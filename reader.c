@@ -10,6 +10,10 @@ static inline void print_conditions() {
     }
 }
 
+file_context *backtest_file_get_ctx(void) {
+    return (file_context *)&context;
+}
+
 int backtest_evaluate_conditions(float value) 
 {
     price_condition condition;
