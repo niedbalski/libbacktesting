@@ -1,49 +1,105 @@
+@author: Jorge Niedbalski R. <jnr@pyrosome.org>
+
 Build Status
 ============
 [![Build Status](https://travis-ci.org/niedbalski/libbacktesting.png?branch=master)](https://travis-ci.org/niedbalski/libbacktesting)
 
-libBacktesting
+LibBacktesting
 ==============
 
-Open-source library written in plain C for back-testing of trading strategies.
+Open-source (BSD Licensed) library useful to test trading strategies using back testing. This library has been
+written in plain C to allow and motivate other language bindings.
+
+- Strategies can be written in LUA just by using a callback mechanism.
+- The library exposes plot routines to draw strategies results.
+- The library offers a collection of already-tested strategies written as LUA scripts
+- Will be possible in the near-future to implement direct connection to some brokers in order to put real trade positions
+- using this library.
 
 Description
 ===========
 
-The library is composed of the following components:
+The library is composed of the following 3 components:
 
-  *) File loader: Creates a new file-loader and
-  associates a time interval in wich a tick will be generated.
+  1. **The feed/file loader**: Loads a stream of ticks from a stream source or directly
+  from a CSV/TXT file.
 
-  Example usage:
-  ```C
-  loaded = backtest_load_file("/home/user/forex-data.csv", BACKTEST_FILE_CSV, time_t since, 
-                                      time_t until, time_t interval, void *callback);
+  *Example of usage*: Creates a new csv loader and set 2 price conditions for each found tick.
   
-  loaded->skip_values(LOWER_THAN, 100.00);
-  loaded->skip_values(GREATER_THAN, 150.00);
-  ```
-
-  *) Lua plugin interface: Associates a set of callbacks to be
-  run on every time interval already set.
-   
   ```C
-  lua = backtest_lua_init("./plugins/3-medium-average.lua")
-  lua->hook("on_tick", price)
-  lua->destroy("before_order"; order);
+  
+  #include <backtest.h>
+  
+  int main(void) {
+      int r;
+      r  = backtest_file_init("/home/user/forex-data.csv", BACKTEST_FILE_CSV);
+      
+      if ( r == -1 ) 
+         return -1;
+
+      backtest_add_price_condition(LOWER_THAN, 100.00);
+      backtest_add_price_condition(GREATER_AND_EQUALS_TO, 50.00);
+      
+      backtest_file_destroy();
+  }
   ```
 
-  Note: To bind a loaded file with a lua runner:
+  2. **LUA strategies**: Everytime a tick is yield on the file loader, the following
+  callbacks lua callbacks are invoked:
+  
+      1. **on_tick** : is called when a new tick passing the price conditions is found.
+      2. **on_new_position** : is called before a new position is gonna be submitted to the trading system.
+      3. **on_position**: is called after a new position is submitted to the trading system.
+      4. **on_exit_position**: is called when a position is closed
+  
+  *Example of usage*: Load a LUA strategy file, the method *backtest_lua_hook* calls the binded callback
+  inside the LUA file.
 
   ```C
-  binded = backtest_bind(loaded, lua);
-  binded->start() ... binded->stop();
+  
+  #include <backtest.h>
+  
+  int main(void) {
+      backtest_lua_init("./strategies/3-sma-average.lua")
+      
+      backtest_lua_hook("on_hook", 100.0);
+      backtest_lua_hook("on_exit_position");
+      
+      //free and destroy resources
+      backtest_lua_destroy();
+  }
+  ```
+  
+  Once you defined your hooks, you need to write the LUA plugin "3-sma-average.lua" :
+  
+  ```lua
+  function on_tick(tick_value)
+      io.write(string.format("Passed value: %s\n", tick_value))
+  end
+
+  function on_exit_position(position)
+      io.write(string.format("Closed at value: %s\n", position.closed_at()))
+  end
+  
+  ```
+  
+  3. **Bind**: Once you define your *Strategy* and creates a *Tick feed* you need to 
+  bind and start simulating trades.
+
+  *Example of usage*: Get the context of the LUA strategy and the CSV loader, then start
+  the strategy from 500 ticks from now timestamp.
+
+  ```C
+  #include <backtest.h>
+  
+  int main(void) {
+      binded = backtest_bind(backtest_lua_get_ctx(), backtest_file_get_ctx());
+      binded->start(-500); // start since -500 ticks , calculate this :)
+  }
   ```
 
-  *) Strategy information: To be done. Exposes the statistics 
-  about the current trading strategy.
-
-
+  4. **Trading API**: Not ready yet.
+  5. **Plots**: Not ready yet
 
 
 
